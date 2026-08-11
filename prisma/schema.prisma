@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  BOT
+  UNKNOWN
+}
+
+model Admin {
+  id           Int     @id @default(1) @db.SmallInt
+  username     String  @unique @db.VarChar(100)
+  passwordHash String  @map("password_hash")
+  displayName  String? @map("display_name") @db.VarChar(150)
+  email        String? @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions AdminSession[]
+
+  @@map("admin")
+}
+
+model AdminSession {
+  id String @id @default(uuid()) @db.Uuid
+
+  adminId Int @default(1) @map("admin_id") @db.SmallInt
+
+  sessionTokenHash String @unique @map("session_token_hash")
+
+  ipAddress String? @map("ip_address") @db.Inet
+  userAgent String? @map("user_agent")
+
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}
+
+model VisitorSession {
+  id String @id @default(uuid()) @db.Uuid
+
+  visitorId String @map("visitor_id") @db.Uuid
+
+  ipAddress String? @map("ip_address") @db.Inet
+
+  deviceType DeviceType @default(UNKNOWN) @map("device_type")
+
+  browser         String? @db.VarChar(100)
+  operatingSystem String? @map("operating_system") @db.VarChar(100)
+
+  userAgent String? @map("user_agent")
+
+  entryPath String? @map("entry_path")
+  lastPath  String? @map("last_path")
+
+  pageViews Int @default(1) @map("page_views")
+
+  startedAt  DateTime @default(now()) @map("started_at") @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  @@index([visitorId])
+  @@index([startedAt])
+  @@index([lastSeenAt])
+  @@index([deviceType])
+  @@map("visitor_sessions")
+}
